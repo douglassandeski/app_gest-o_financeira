@@ -1,0 +1,6 @@
+{
+  "name": "Gestão Financeira",
+  "description": "Aplicativo de controle financeiro pessoal avançado com círculo central de receitas e despesas, extrato detalhado, planilha interativa e metas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,18 @@
+{
+  "short_name": "Gestão Financeira",
+  "name": "Gestão Financeira",
+  "description": "Aplicativo de gestão financeira profissional estilo TradeMap",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#090D16",
+  "background_color": "#090D16",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

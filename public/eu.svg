@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="50%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#090D16" />
+    </linearGradient>
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FDDEC0" />
+      <stop offset="100%" stop-color="#E5B28B" />
+    </linearGradient>
+    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D1F17" />
+      <stop offset="100%" stop-color="#18110D" />
+    </linearGradient>
+    <linearGradient id="suitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00D2B5" />
+      <stop offset="100%" stop-color="#00E5AA" />
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#00D2B5" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#00D2B5" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background with subtle tech mesh -->
+  <rect width="240" height="240" fill="url(#bgGrad)" />
+  <circle cx="120" cy="95" r="75" fill="url(#halo)" />
+
+  <!-- Outer Neon Border Ring -->
+  <rect x="3" y="3" width="234" height="234" rx="28" fill="none" stroke="url(#neonGlow)" stroke-width="2.5" stroke-opacity="0.6" />
+
+  <!-- Suit & Shoulders -->
+  <path d="M40 240 C45 190 75 168 120 168 C165 168 195 190 200 240 Z" fill="url(#suitGrad)" />
+  
+  <!-- Blazer Lapels & Shirt -->
+  <path d="M96 168 L120 220 L144 168 Z" fill="#F8FAFC" />
+  <path d="M115 174 L120 215 L125 174 Z" fill="#00D2B5" />
+  <!-- Blazer collar edges -->
+  <path d="M82 170 L112 215 L106 240 L60 240 Z" fill="#131D2E" />
+  <path d="M158 170 L128 215 L134 240 L180 240 Z" fill="#131D2E" />
+
+  <!-- Neck -->
+  <path d="M104 140 L136 140 L132 175 L108 175 Z" fill="#E5B28B" />
+  <path d="M104 140 L136 140 L130 152 L110 152 Z" fill="#000000" opacity="0.1" />
+
+  <!-- Head Base -->
+  <ellipse cx="120" cy="115" rx="36" ry="44" fill="url(#skinGrad)" />
+
+  <!-- Ears -->
+  <circle cx="84" cy="116" r="8" fill="#E5B28B" />
+  <circle cx="156" cy="116" r="8" fill="#E5B28B" />
+
+  <!-- Eyes & Eyebrows -->
+  <ellipse cx="106" cy="112" rx="4" ry="2.5" fill="#1E293B" />
+  <ellipse cx="134" cy="112" rx="4" ry="2.5" fill="#1E293B" />
+  <circle cx="107" cy="111" r="1" fill="#FFFFFF" />
+  <circle cx="135" cy="111" r="1" fill="#FFFFFF" />
+  <!-- Eyebrows -->
+  <path d="M99 104 Q106 101 114 104" stroke="#2D1F17" stroke-width="2.5" stroke-linecap="round" fill="none" />
+  <path d="M126 104 Q134 101 141 104" stroke="#2D1F17" stroke-width="2.5" stroke-linecap="round" fill="none" />
+
+  <!-- Friendly Smile & Nose -->
+  <path d="M120 114 L118 126 L123 126" stroke="#C58F68" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  <path d="M108 135 Q120 144 132 135" stroke="#9A3412" stroke-width="2.5" stroke-linecap="round" fill="none" />
+
+  <!-- Hair (Neat Modern Crop) -->
+  <path d="M84 105 C82 80 92 68 120 68 C148 68 158 80 156 105 C153 100 148 88 140 86 C128 83 112 84 98 88 C90 92 86 98 84 105 Z" fill="url(#hairGrad)" />
+  <path d="M84 105 C85 96 90 88 96 85 C94 92 92 100 90 108 Z" fill="url(#hairGrad)" />
+  <path d="M156 105 C155 96 150 88 144 85 C146 92 148 100 150 108 Z" fill="url(#hairGrad)" />
+
+  <!-- Signature Initials Badge in corner -->
+  <g transform="translate(182, 182)">
+    <circle cx="16" cy="16" r="15" fill="#090D16" stroke="#00D2B5" stroke-width="1.8" />
+    <text x="16" y="21" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#00D2B5" text-anchor="middle">DS</text>
+  </g>
+</svg>
