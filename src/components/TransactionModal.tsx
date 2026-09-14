@@ -23,7 +23,7 @@ interface TransactionModalProps {
   onSave: (transaction: Omit<Transaction, 'id' | 'createdAt'>, id?: string) => void;
   editingTransaction?: Transaction | null;
   categories: Category[];
-  accounts: Account[];
+  accounts?: Account[];
   initialType?: TransactionType;
 }
 
@@ -33,7 +33,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   onSave,
   editingTransaction,
   categories,
-  accounts,
   initialType = 'expense',
 }) => {
   const [type, setType] = useState<TransactionType>(initialType);
@@ -86,8 +85,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       const filteredCategories = categories.filter(c => c.type === initialType || c.type === 'both');
       setCategoryId(filteredCategories[0]?.id || categories[0]?.id || '');
       setSubCategory(filteredCategories[0]?.subcategories[0] || '');
-      setAccountId(accounts[0]?.id || '');
-      setDestinationAccountId(accounts[1]?.id || '');
+      setAccountId('principal');
+      setDestinationAccountId('');
       setPaymentMethod('pix');
       setStatus('paid');
       setIsRecurring(false);
@@ -95,7 +94,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setTags([]);
       setNotes('');
     }
-  }, [editingTransaction, isOpen, initialType, categories, accounts]);
+  }, [editingTransaction, isOpen, initialType, categories]);
 
   // When category changes, auto set first subcategory
   const handleCategoryChange = (newCatId: string) => {
@@ -124,14 +123,26 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   // Quick amount modifier
+  const parseInputAmount = (val: string): number => {
+    if (!val) return 0;
+    let clean = val.trim();
+    if (clean.includes('.') && clean.includes(',')) {
+      clean = clean.replace(/\./g, '').replace(',', '.');
+    } else if (clean.includes(',')) {
+      clean = clean.replace(',', '.');
+    }
+    const parsed = parseFloat(clean);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
   const addQuickAmount = (val: number) => {
-    const current = parseFloat(amountStr) || 0;
+    const current = parseInputAmount(amountStr);
     setAmountStr((current + val).toFixed(2));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedAmount = parseFloat(amountStr);
+    const parsedAmount = parseInputAmount(amountStr);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       alert('Por favor, insira um valor válido maior que zero.');
       return;
@@ -206,8 +217,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
         {/* Modal Body Form */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
-          {/* Type Selector (Despesa, Receita, Investimento, Transferência) */}
-          <div className="grid grid-cols-4 gap-2 bg-[#090D16] p-1.5 rounded-xl border border-[#1E293B]">
+          {/* Type Selector (Despesa, Receita, Investimento) */}
+          <div className="grid grid-cols-3 gap-2 bg-[#090D16] p-1.5 rounded-xl border border-[#1E293B]">
             <button
               type="button"
               onClick={() => {
@@ -215,7 +226,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 const cat = categories.find(c => c.type === 'expense');
                 if (cat) handleCategoryChange(cat.id);
               }}
-              className={`py-2 px-1 text-xs rounded-lg font-bold transition-all text-center ${
+              className={`py-2 px-1 text-xs rounded-lg font-bold transition-all text-center cursor-pointer ${
                 type === 'expense'
                   ? 'bg-[#F43F5E] text-white shadow-lg shadow-rose-900/30'
                   : 'text-slate-400 hover:text-white'
@@ -230,7 +241,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 const cat = categories.find(c => c.type === 'income');
                 if (cat) handleCategoryChange(cat.id);
               }}
-              className={`py-2 px-1 text-xs rounded-lg font-bold transition-all text-center ${
+              className={`py-2 px-1 text-xs rounded-lg font-bold transition-all text-center cursor-pointer ${
                 type === 'income'
                   ? 'bg-[#00D2B5] text-[#090D16] shadow-lg shadow-teal-900/30 font-extrabold'
                   : 'text-slate-400 hover:text-white'
@@ -245,24 +256,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 const cat = categories.find(c => c.id === 'cat_investimentos');
                 if (cat) handleCategoryChange(cat.id);
               }}
-              className={`py-2 px-1 text-xs rounded-lg font-bold transition-all text-center ${
+              className={`py-2 px-1 text-xs rounded-lg font-bold transition-all text-center cursor-pointer ${
                 type === 'investment'
                   ? 'bg-[#6366F1] text-white shadow-lg shadow-indigo-900/30'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               Investimento
-            </button>
-            <button
-              type="button"
-              onClick={() => setType('transfer')}
-              className={`py-2 px-1 text-xs rounded-lg font-bold transition-all text-center ${
-                type === 'transfer'
-                  ? 'bg-[#F59E0B] text-[#090D16] shadow-lg font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Transferência
             </button>
           </div>
 
@@ -340,120 +340,56 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
           </div>
 
-          {/* If Transfer, show Origin and Destination Account */}
-          {type === 'transfer' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-[#090D16] p-4 rounded-xl border border-[#1E293B]">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Conta de Origem (Sai)
-                </label>
+          {/* Category & Subcategory */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Categoria
+              </label>
+              <select
+                value={categoryId}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                className="w-full bg-[#090D16] border border-[#1E293B] focus:border-[#00D2B5] rounded-xl px-3 py-2 text-sm text-white focus:outline-none transition-colors"
+              >
+                {filteredCategories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Subcategoria
+              </label>
+              {currentCategory && currentCategory.subcategories.length > 0 ? (
                 <select
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  className="w-full bg-[#131D2E] border border-[#1E293B] rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                  value={subCategory}
+                  onChange={(e) => setSubCategory(e.target.value)}
+                  className="w-full bg-[#090D16] border border-[#1E293B] focus:border-[#00D2B5] rounded-xl px-3 py-2 text-sm text-white focus:outline-none transition-colors"
                 >
-                  {accounts.map(acc => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name} ({acc.institution})
+                  {currentCategory.subcategories.map(sub => (
+                    <option key={sub} value={sub}>
+                      {sub}
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Conta de Destino (Entra)
-                </label>
-                <select
-                  value={destinationAccountId}
-                  onChange={(e) => setDestinationAccountId(e.target.value)}
-                  className="w-full bg-[#131D2E] border border-[#1E293B] rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
-                >
-                  {accounts
-                    .filter(acc => acc.id !== accountId)
-                    .map(acc => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.name} ({acc.institution})
-                      </option>
-                    ))}
-                </select>
-              </div>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="Ex: Geral"
+                  value={subCategory}
+                  onChange={(e) => setSubCategory(e.target.value)}
+                  className="w-full bg-[#090D16] border border-[#1E293B] rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                />
+              )}
             </div>
-          ) : (
-            /* Category & Subcategory */
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Categoria
-                </label>
-                <select
-                  value={categoryId}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full bg-[#090D16] border border-[#1E293B] focus:border-[#00D2B5] rounded-xl px-3 py-2 text-sm text-white focus:outline-none transition-colors"
-                >
-                  {filteredCategories.map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Subcategoria
-                </label>
-                {currentCategory && currentCategory.subcategories.length > 0 ? (
-                  <select
-                    value={subCategory}
-                    onChange={(e) => setSubCategory(e.target.value)}
-                    className="w-full bg-[#090D16] border border-[#1E293B] focus:border-[#00D2B5] rounded-xl px-3 py-2 text-sm text-white focus:outline-none transition-colors"
-                  >
-                    {currentCategory.subcategories.map(sub => (
-                      <option key={sub} value={sub}>
-                        {sub}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    placeholder="Ex: Geral"
-                    value={subCategory}
-                    onChange={(e) => setSubCategory(e.target.value)}
-                    className="w-full bg-[#090D16] border border-[#1E293B] rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Account & Payment Method & Status */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {type !== 'transfer' && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Conta / Carteira
-                </label>
-                <select
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  className="w-full bg-[#090D16] border border-[#1E293B] focus:border-[#00D2B5] rounded-xl px-3 py-2 text-sm text-white focus:outline-none transition-colors"
-                >
-                  {accounts.length === 0 ? (
-                    <option value="">Nenhuma conta cadastrada</option>
-                  ) : (
-                    accounts.map(acc => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.name} ({acc.institution})
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-            )}
-
-            <div className={type === 'transfer' ? 'md:col-span-2' : ''}>
+          {/* Payment Method & Status */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5 text-[#00D2B5]" />
                 Método de Pagamento

@@ -3,7 +3,6 @@ import { db } from '../lib/firebase';
 
 const CREATOR_PROFILE_DOC = 'creator_profile';
 const CREATOR_STORAGE_KEY = 'douglas_custom_photo';
-const DEFAULT_AVATAR = '/creator-avatar.svg';
 
 export interface CreatorProfile {
   name: string;
@@ -18,67 +17,71 @@ export const DEFAULT_CREATOR_INFO: CreatorProfile = {
   name: 'Douglas Sandeski',
   photoUrl: '/creator-photo.jpg',
   role: 'Criador & Desenvolvedor',
-  bio: 'Economista formado pela Unioeste Cascavel e pós/graduando em Tecnologia da Informação e Comunicação pela UEPG.',
-  education: 'Ciências Econômicas (Unioeste Cascavel) • TIC (UEPG)',
-  career: 'Sicredi Guaraniaçu',
+  bio: 'Idealizador e desenvolvedor do sistema de Gestão Financeira. Curso superior de Ciências Econômicas em andamento e tecnólogo em Tecnologia da Informação e Comunicação.',
+  education: 'Curso Superior de Economia em Andamento • Tecnólogo em TI e Comunicação',
+  career: '',
 };
 
-// Sync locally cached photo to server file disk and firestore so all users/APK get it permanently
-export async function syncCreatorPhotoToServerAndFirestore(userEmail?: string | null, userPhoto?: string | null) {
+// Immediate cleanup of any old Google profile URL stored in localStorage
+if (typeof window !== 'undefined') {
   try {
-    const localPhoto = localStorage.getItem(CREATOR_STORAGE_KEY);
-    const photoToSync = localPhoto || (userEmail?.toLowerCase().includes('douglas.sandeski') ? userPhoto : null);
+    const saved = localStorage.getItem(CREATOR_STORAGE_KEY);
+    if (saved && (saved.includes('googleusercontent') || saved.includes('http'))) {
+      localStorage.removeItem(CREATOR_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage access error
+  }
+}
 
-    if (photoToSync) {
-      // 1. Send to server file persistence (Vite middleware saves to public/creator-photo.jpg & public/eu.jpeg)
-      if (photoToSync.startsWith('data:image')) {
-        fetch('/api/save-creator-photo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: photoToSync }),
-        }).catch(() => {});
-      }
-
-      // 2. Persist in Firestore public_config for global access by all users & APK
-      try {
-        const ref = doc(db, 'public_config', CREATOR_PROFILE_DOC);
+// Resets/ensures creator photo in Firestore is NEVER contaminated with any Google account photo
+export async function ensureCreatorPhotoClean(isLoggedInUser?: boolean) {
+  try {
+    if (!isLoggedInUser) return;
+    const ref = doc(db, 'public_config', CREATOR_PROFILE_DOC);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const currentUrl = snap.data()?.photoUrl;
+      // If it has a Google profile URL (googleusercontent), immediately wipe it back to /creator-photo.jpg
+      if (typeof currentUrl === 'string' && currentUrl.includes('googleusercontent.com')) {
         await setDoc(
           ref,
           {
             name: 'Douglas Sandeski',
-            photoUrl: photoToSync,
+            photoUrl: '/creator-photo.jpg',
             updatedAt: new Date().toISOString(),
           },
           { merge: true }
         );
-      } catch {
-        // May require auth depending on rules
       }
     }
-  } catch (err) {
-    console.warn('Silent creator sync error:', err);
+  } catch {
+    // Ignore permissions/network errors
   }
 }
 
-// Fetch fixed creator photo
+// Fetch fixed creator photo - always returns Douglas's actual attached photo
 export async function getFixedCreatorPhoto(): Promise<string> {
-  // 1. Check Firestore public config first (shared globally across all devices & APK)
   try {
+    // Check if there is a custom base64 photo in localStorage (only if uploaded)
+    const localPhoto = localStorage.getItem(CREATOR_STORAGE_KEY);
+    if (localPhoto && localPhoto.startsWith('data:image')) {
+      return localPhoto;
+    }
+
+    // Check Firestore public config, only accepting valid non-google creator URLs
     const ref = doc(db, 'public_config', CREATOR_PROFILE_DOC);
     const snap = await getDoc(ref);
-    if (snap.exists() && snap.data()?.photoUrl) {
-      return snap.data().photoUrl as string;
+    if (snap.exists()) {
+      const url = snap.data()?.photoUrl;
+      if (typeof url === 'string' && !url.includes('googleusercontent.com') && (url.startsWith('/creator-photo') || url.startsWith('data:image'))) {
+        return url;
+      }
     }
   } catch {
-    // Continue to next fallbacks
+    // Fallback directly to physical asset
   }
 
-  // 2. Check locally stored photo from upload
-  const localPhoto = localStorage.getItem(CREATOR_STORAGE_KEY);
-  if (localPhoto) {
-    return localPhoto;
-  }
-
-  // 3. Check physical file asset
+  // The permanent physical asset of Douglas Sandeski
   return '/creator-photo.jpg';
 }

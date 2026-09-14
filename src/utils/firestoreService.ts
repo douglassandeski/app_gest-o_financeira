@@ -3,6 +3,7 @@ import {
   collection, 
   doc, 
   setDoc, 
+  getDocs,
   deleteDoc, 
   onSnapshot 
 } from '../lib/firebase';
@@ -160,43 +161,35 @@ export const saveGoalToFirestore = async (userId: string, g: FinancialGoal) => {
 };
 
 /**
- * Seed user's Firestore with initial defaults on first login if empty
+ * Seed user's Firestore with default categories on first login if empty.
+ * Never seeds fake/demo transactions or accounts.
  */
 export const seedUserFirestoreIfEmpty = async (
   userId: string, 
-  initialTxs: Transaction[], 
-  initialAccs: Account[], 
-  initialCats: Category[], 
-  initialBudgets: Budget[], 
-  initialGoals: FinancialGoal[]
+  initialCats: Category[]
 ) => {
-  // Save initial categories
+  // Only save default category list
   for (const cat of initialCats) {
     const ref = doc(db, 'users', userId, 'categories', cat.id);
     await setDoc(ref, cat, { merge: true });
   }
+};
 
-  // Save initial accounts
-  for (const acc of initialAccs) {
-    const ref = doc(db, 'users', userId, 'accounts', acc.id);
-    await setDoc(ref, acc, { merge: true });
-  }
-
-  // Save initial transactions
-  for (const tx of initialTxs) {
-    const ref = doc(db, 'users', userId, 'transactions', tx.id);
-    await setDoc(ref, tx, { merge: true });
-  }
-
-  // Save initial budgets
-  for (const b of initialBudgets) {
-    const ref = doc(db, 'users', userId, 'budgets', b.id);
-    await setDoc(ref, b, { merge: true });
-  }
-
-  // Save initial goals
-  for (const g of initialGoals) {
-    const ref = doc(db, 'users', userId, 'goals', g.id);
-    await setDoc(ref, g, { merge: true });
+/**
+ * Wipe all user transactions, accounts, budgets, and goals from Firestore
+ * so the user can start with a 100% clean account.
+ */
+export const clearAllUserDataFromFirestore = async (userId: string) => {
+  try {
+    const collectionsToWipe = ['transactions', 'accounts', 'budgets', 'goals'];
+    for (const colName of collectionsToWipe) {
+      const colRef = collection(db, 'users', userId, colName);
+      const snap = await getDocs(colRef);
+      for (const d of snap.docs) {
+        await deleteDoc(d.ref);
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao limpar dados do Firestore:', err);
   }
 };

@@ -21,7 +21,7 @@ import { formatCurrency, formatDate, getPaymentMethodLabel } from '../utils/form
 interface TransactionsScreenProps {
   transactions: Transaction[];
   categories: Category[];
-  accounts: Account[];
+  accounts?: Account[];
   selectedMonth: string;
   hideValues: boolean;
   onOpenNewTransaction: (type?: TransactionType) => void;
@@ -35,7 +35,6 @@ interface TransactionsScreenProps {
 export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
   transactions,
   categories,
-  accounts,
   selectedMonth,
   hideValues,
   onOpenNewTransaction,
@@ -48,7 +47,7 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | TransactionType>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [accountFilter, setAccountFilter] = useState<string>('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'pending'>('all');
   const [allMonths, setAllMonths] = useState(false);
 
@@ -59,13 +58,6 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
       return acc;
     }, {} as Record<string, Category>);
   }, [categories]);
-
-  const accountMap = useMemo(() => {
-    return accounts.reduce((acc, a) => {
-      acc[a.id] = a;
-      return acc;
-    }, {} as Record<string, Account>);
-  }, [accounts]);
 
   // Filtered list
   const filteredTransactions = useMemo(() => {
@@ -82,8 +74,8 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
       if (categoryFilter !== 'all' && t.categoryId !== categoryFilter) {
         return false;
       }
-      // Account check
-      if (accountFilter !== 'all' && t.accountId !== accountFilter) {
+      // Payment Method check
+      if (paymentMethodFilter !== 'all' && t.paymentMethod !== paymentMethodFilter) {
         return false;
       }
       // Status check
@@ -103,7 +95,7 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
       }
       return true;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, selectedMonth, allMonths, typeFilter, categoryFilter, accountFilter, statusFilter, searchTerm]);
+  }, [transactions, selectedMonth, allMonths, typeFilter, categoryFilter, paymentMethodFilter, statusFilter, searchTerm]);
 
   // Calculate totals of current filtered set
   const filteredIncome = filteredTransactions
@@ -114,7 +106,11 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const filteredNet = filteredIncome - filteredExpense;
+  const filteredInvestment = filteredTransactions
+    .filter(t => t.type === 'investment')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const filteredNet = filteredIncome - filteredExpense - filteredInvestment;
 
   return (
     <div className="space-y-6 pb-12">
@@ -218,20 +214,23 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
             </select>
           </div>
 
-          {/* Account Filter */}
+          {/* Payment Method Filter */}
           <div>
             <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
-              Conta
+              Método de Pagamento
             </label>
             <select
-              value={accountFilter}
-              onChange={(e) => setAccountFilter(e.target.value)}
+              value={paymentMethodFilter}
+              onChange={(e) => setPaymentMethodFilter(e.target.value)}
               className="w-full bg-[#090D16] border border-[#1E293B] rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none"
             >
-              <option value="all">Todas as Contas</option>
-              {accounts.map(acc => (
-                <option key={acc.id} value={acc.id}>{acc.name}</option>
-              ))}
+              <option value="all">Todos Métodos</option>
+              <option value="pix">PIX</option>
+              <option value="credit_card">Cartão de Crédito</option>
+              <option value="debit_card">Cartão de Débito</option>
+              <option value="boleto">Boleto Bancário</option>
+              <option value="bank_transfer">Transferência / TED</option>
+              <option value="cash">Dinheiro em Espécie</option>
             </select>
           </div>
 
@@ -254,19 +253,22 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
 
         {/* Filter Results Summary Row */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-xs text-slate-400 border-t border-[#1E293B]/40">
-          <div className="flex items-center gap-4 font-mono-nums">
+          <div className="flex flex-wrap items-center gap-4 font-mono-nums">
             <span>Receitas: <strong className="text-[#00D2B5]">{formatCurrency(filteredIncome, hideValues)}</strong></span>
             <span>Despesas: <strong className="text-[#F43F5E]">{formatCurrency(filteredExpense, hideValues)}</strong></span>
-            <span>Saldo: <strong className={filteredNet >= 0 ? 'text-[#00D2B5]' : 'text-[#F43F5E]'}>{formatCurrency(filteredNet, hideValues)}</strong></span>
+            {filteredInvestment > 0 && (
+              <span>Aportes: <strong className="text-[#818CF8]">{formatCurrency(filteredInvestment, hideValues)}</strong></span>
+            )}
+            <span>Saldo Disponível: <strong className={filteredNet >= 0 ? 'text-[#00D2B5]' : 'text-[#F43F5E]'}>{filteredNet > 0 ? '+' : ''}{formatCurrency(filteredNet, hideValues)}</strong></span>
           </div>
-          {(searchTerm || typeFilter !== 'all' || categoryFilter !== 'all' || accountFilter !== 'all' || statusFilter !== 'all') && (
+          {(searchTerm || typeFilter !== 'all' || categoryFilter !== 'all' || paymentMethodFilter !== 'all' || statusFilter !== 'all') && (
             <button
               type="button"
               onClick={() => {
                 setSearchTerm('');
                 setTypeFilter('all');
                 setCategoryFilter('all');
-                setAccountFilter('all');
+                setPaymentMethodFilter('all');
                 setStatusFilter('all');
               }}
               className="text-[#00D2B5] hover:underline text-[11px]"
@@ -286,7 +288,6 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
         ) : (
           filteredTransactions.map(tx => {
             const cat = categoryMap[tx.categoryId];
-            const acc = accountMap[tx.accountId];
             const isIncome = tx.type === 'income';
             const isExpense = tx.type === 'expense';
             const isInvestment = tx.type === 'investment';
@@ -337,8 +338,6 @@ export const TransactionsScreen: React.FC<TransactionsScreenProps> = ({
                           <span className="text-slate-400">{tx.subCategory}</span>
                         </>
                       )}
-                      <span>•</span>
-                      <span>{acc?.name || 'Conta'}</span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3 text-slate-500" />

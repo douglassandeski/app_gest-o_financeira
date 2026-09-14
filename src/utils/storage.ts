@@ -8,7 +8,7 @@ const KEYS = {
   BUDGETS: 'tradefin_budgets',
   GOALS: 'tradefin_goals',
   HIDE_VALUES: 'tradefin_hide_values',
-  CLEAN_FLAG: 'tradefin_clean_v1_zeroed',
+  CLEAN_FLAG: 'tradefin_clean_v2_nobanks',
 };
 
 // Check if old mock data needs to be cleared for clean zeroed first access
@@ -19,6 +19,7 @@ const checkAndClearLegacyTestData = () => {
       localStorage.removeItem(KEYS.ACCOUNTS);
       localStorage.removeItem(KEYS.BUDGETS);
       localStorage.removeItem(KEYS.GOALS);
+      localStorage.removeItem('tradefin_clean_v1_zeroed');
       localStorage.setItem(KEYS.CLEAN_FLAG, 'true');
     }
   } catch (e) {

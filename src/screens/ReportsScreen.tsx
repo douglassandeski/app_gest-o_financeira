@@ -43,7 +43,11 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const netBalance = totalIncome - totalExpense;
+  const totalInvestment = monthTransactions
+    .filter(t => t.type === 'investment')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const netBalance = totalIncome - totalExpense - totalInvestment;
 
   // Breakdown by payment method
   const paymentMethodsBreakdown = useMemo(() => {
@@ -75,12 +79,13 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
 
   // Monthly timeline for the last 4 months
   const monthlyTimeline = useMemo(() => {
-    const map: Record<string, { income: number; expense: number }> = {};
+    const map: Record<string, { income: number; expense: number; investment: number }> = {};
     transactions.forEach(t => {
       const ym = t.date.slice(0, 7);
-      if (!map[ym]) map[ym] = { income: 0, expense: 0 };
+      if (!map[ym]) map[ym] = { income: 0, expense: 0, investment: 0 };
       if (t.type === 'income') map[ym].income += t.amount;
       if (t.type === 'expense') map[ym].expense += t.amount;
+      if (t.type === 'investment') map[ym].investment += t.amount;
     });
 
     return Object.entries(map)
@@ -119,7 +124,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-[#00D2B5]" />
-              Evolução Mensal (Receitas vs Despesas)
+              Evolução Mensal (Receitas vs Gastos & Aportes)
             </h3>
             <div className="flex items-center gap-3 text-xs">
               <span className="flex items-center gap-1 text-slate-400">
@@ -128,21 +133,26 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
               <span className="flex items-center gap-1 text-slate-400">
                 <span className="w-2.5 h-2.5 rounded-sm bg-[#F43F5E]" /> Despesas
               </span>
+              <span className="flex items-center gap-1 text-slate-400">
+                <span className="w-2.5 h-2.5 rounded-sm bg-[#6366F1]" /> Aportes
+              </span>
             </div>
           </div>
 
           <div className="space-y-4 pt-2">
             {monthlyTimeline.map(([ym, data]) => {
-              const maxVal = Math.max(data.income, data.expense, 1);
+              const maxVal = Math.max(data.income, data.expense, data.investment, 1);
               const incomeWidth = (data.income / maxVal) * 100;
               const expenseWidth = (data.expense / maxVal) * 100;
+              const investmentWidth = (data.investment / maxVal) * 100;
+              const netResult = data.income - data.expense - data.investment;
 
               return (
                 <div key={ym} className="space-y-1.5 bg-[#090D16] p-3 rounded-xl border border-[#1E293B]">
                   <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
                     <span>Mês: {ym}</span>
-                    <span className={`font-mono-nums ${data.income - data.expense >= 0 ? 'text-[#00D2B5]' : 'text-[#F43F5E]'}`}>
-                      Resultado: {formatCurrency(data.income - data.expense, hideValues)}
+                    <span className={`font-mono-nums ${netResult >= 0 ? 'text-[#00D2B5]' : 'text-[#F43F5E]'}`}>
+                      Saldo Disponível: {netResult > 0 ? '+' : ''}{formatCurrency(netResult, hideValues)}
                     </span>
                   </div>
 
@@ -173,6 +183,22 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
                       />
                     </div>
                   </div>
+
+                  {/* Investment bar */}
+                  {data.investment > 0 && (
+                    <div className="space-y-1 text-[11px] font-mono-nums">
+                      <div className="flex justify-between text-[#818CF8]">
+                        <span>Aporte / Investimento</span>
+                        <span>{formatCurrency(data.investment, hideValues)}</span>
+                      </div>
+                      <div className="w-full h-2 bg-[#151E2E] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#6366F1] rounded-full transition-all duration-500"
+                          style={{ width: `${investmentWidth}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -3,7 +3,7 @@ import { Navbar } from './components/Navbar';
 import { TransactionModal } from './components/TransactionModal';
 import { AccountModal } from './components/AccountModal';
 import { AboutModal } from './components/AboutModal';
-import { getFixedCreatorPhoto, syncCreatorPhotoToServerAndFirestore } from './utils/creatorProfile';
+import { getFixedCreatorPhoto, ensureCreatorPhotoClean } from './utils/creatorProfile';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { TransactionsScreen } from './screens/TransactionsScreen';
 import { SpreadsheetScreen } from './screens/SpreadsheetScreen';
@@ -88,16 +88,14 @@ export default function App() {
 
   // About Creator Modal State
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-  const [creatorPhoto, setCreatorPhoto] = useState<string>(() => {
-    return localStorage.getItem('douglas_custom_photo') || '/creator-photo.jpg';
-  });
+  const [creatorPhoto, setCreatorPhoto] = useState<string>('/creator-photo.jpg');
 
   useEffect(() => {
     getFixedCreatorPhoto().then((url) => {
       if (url) setCreatorPhoto(url);
     });
-    syncCreatorPhotoToServerAndFirestore(currentUser?.email, currentUser?.photoURL);
-  }, [currentUser?.email, currentUser?.photoURL]);
+    ensureCreatorPhotoClean(!!currentUser);
+  }, [currentUser]);
 
   // Listen to Firebase Auth state
   useEffect(() => {
@@ -123,15 +121,8 @@ export default function App() {
       if (txs.length > 0) {
         setTransactions(txs);
       } else {
-        // If user has no transactions yet in Firestore, seed their account with initial data
-        seedUserFirestoreIfEmpty(
-          userId, 
-          transactions, 
-          accounts, 
-          categories, 
-          budgets, 
-          goals
-        );
+        // If user has no transactions yet in Firestore, initialize categories only
+        seedUserFirestoreIfEmpty(userId, categories);
       }
     });
 
@@ -446,7 +437,6 @@ export default function App() {
           <DashboardScreen
             transactions={transactions}
             categories={categories}
-            accounts={accounts}
             selectedMonth={selectedMonth}
             hideValues={hideValues}
             onOpenNewTransaction={handleOpenNewTransaction}
@@ -454,8 +444,6 @@ export default function App() {
             onToggleTransactionStatus={handleToggleStatus}
             onNavigateToTransactions={() => setCurrentScreen('transactions')}
             onNavigateToSpreadsheet={() => setCurrentScreen('spreadsheet')}
-            onAddAccount={handleOpenNewAccount}
-            onEditAccount={handleEditAccount}
           />
         )}
 
@@ -540,7 +528,7 @@ export default function App() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Ciências Econômicas (Unioeste Cascavel) • TIC (UEPG) • Sicredi Guaraniaçu
+                  Curso Superior de Economia em Andamento • Tecnólogo em TI e Comunicação
                 </p>
               </div>
             </div>
@@ -557,7 +545,7 @@ export default function App() {
           </div>
 
           <div className="text-center text-[11px] text-slate-500">
-            © {new Date().getFullYear()} Gestão Financeira Pessoal • Desenvolvido por Douglas Sandeski • Cascavel / Guaraniaçu - PR
+            © {new Date().getFullYear()} Gestão Financeira Pessoal • Desenvolvido por Douglas Sandeski • Guaraniaçu-PR
           </div>
         </div>
       </footer>
@@ -592,7 +580,6 @@ export default function App() {
       <AboutModal
         isOpen={isAboutModalOpen}
         onClose={() => setIsAboutModalOpen(false)}
-        currentUser={currentUser}
       />
     </div>
   );

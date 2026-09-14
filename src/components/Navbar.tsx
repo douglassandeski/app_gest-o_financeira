@@ -104,9 +104,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => onSelectScreen('dashboard')}
               className="flex items-center gap-2.5 group text-left focus:outline-none"
             >
-              {/* Distinctive TradeMap-style $ Logo */}
-              <div className="w-9 h-9 rounded-xl bg-[#0F172A] border border-[#00D2B5]/50 flex items-center justify-center shadow-[0_0_15px_rgba(0,210,181,0.25)] group-hover:border-[#00D2B5] transition-all">
-                <DollarSign className="w-5 h-5 text-[#00D2B5] stroke-[2.5]" />
+              {/* App Logo */}
+              <div className="w-9 h-9 rounded-xl overflow-hidden border border-[#00D2B5]/50 flex items-center justify-center shadow-[0_0_15px_rgba(0,210,181,0.25)] group-hover:border-[#00D2B5] transition-all bg-[#0F172A]">
+                <img src="/pwa-192x192.png" alt="Gestão Financeira Logo" className="w-full h-full object-cover" />
               </div>
               <div>
                 <span className="text-base font-extrabold tracking-tight text-white group-hover:text-[#00D2B5] transition-colors">
@@ -380,7 +380,6 @@ export const Navbar: React.FC<NavbarProps> = ({
       <AboutModal
         isOpen={showAboutModal}
         onClose={() => setShowAboutModal(false)}
-        currentUser={currentUser}
       />
     </header>
   );

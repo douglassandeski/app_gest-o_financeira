@@ -1,4 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
+
+function getAppLogoSvg(isMaskable = false) {
+  // Safe zone for maskable icon: keep essential elements within 80% circle (scale 0.76, translate 60)
+  const scale = isMaskable ? 0.76 : 0.90;
+  const translate = isMaskable ? 61 : 25;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <!-- Studio Grey Background Gradient -->
     <radialGradient id="studioBg" cx="50%" cy="40%" r="65%">
@@ -107,9 +116,9 @@
   </defs>
 
   <!-- Background: Studio Neutral Gray with Rounded Corners if not maskable -->
-  <rect width="512" height="512" rx="100" fill="url(#studioBg)" />
+  <rect width="512" height="512" rx="${isMaskable ? 0 : 100}" fill="url(#studioBg)" />
 
-  <g transform="translate(25, 25) scale(0.9)">
+  <g transform="translate(${translate}, ${translate}) scale(${scale})">
     <!-- Ground Ambient Shadow Beneath All Bars -->
     <ellipse cx="265" cy="442" rx="175" ry="18" fill="#1E293B" opacity="0.32" filter="url(#groundShadowFilter)" />
     <ellipse cx="265" cy="440" rx="145" ry="12" fill="#0F172A" opacity="0.28" filter="url(#softGlow)" />
@@ -192,61 +201,16 @@
     <!-- Center approx x=252, y=105 -->
     <g id="dollarSign" filter="url(#dollarShadow)">
       <!-- 3D Extrusion Side Layers -->
-      
-        <text x="260.4" y="116.4"
+      ${[12, 10, 8, 6, 4, 2].map((offset, i) => `
+        <text x="${252 + offset * 0.7}" y="${120 - offset * 0.3}"
           font-family="'Arial Black', 'Impact', sans-serif"
           font-weight="900"
           font-size="94"
-          fill="#044422"
+          fill="${i < 3 ? '#044422' : '#065F46'}"
           stroke="#022C22"
           stroke-width="5"
           text-anchor="middle">$</text>
-      
-        <text x="259" y="117"
-          font-family="'Arial Black', 'Impact', sans-serif"
-          font-weight="900"
-          font-size="94"
-          fill="#044422"
-          stroke="#022C22"
-          stroke-width="5"
-          text-anchor="middle">$</text>
-      
-        <text x="257.6" y="117.6"
-          font-family="'Arial Black', 'Impact', sans-serif"
-          font-weight="900"
-          font-size="94"
-          fill="#044422"
-          stroke="#022C22"
-          stroke-width="5"
-          text-anchor="middle">$</text>
-      
-        <text x="256.2" y="118.2"
-          font-family="'Arial Black', 'Impact', sans-serif"
-          font-weight="900"
-          font-size="94"
-          fill="#065F46"
-          stroke="#022C22"
-          stroke-width="5"
-          text-anchor="middle">$</text>
-      
-        <text x="254.8" y="118.8"
-          font-family="'Arial Black', 'Impact', sans-serif"
-          font-weight="900"
-          font-size="94"
-          fill="#065F46"
-          stroke="#022C22"
-          stroke-width="5"
-          text-anchor="middle">$</text>
-      
-        <text x="253.4" y="119.4"
-          font-family="'Arial Black', 'Impact', sans-serif"
-          font-weight="900"
-          font-size="94"
-          fill="#065F46"
-          stroke="#022C22"
-          stroke-width="5"
-          text-anchor="middle">$</text>
-      
+      `).join('')}
 
       <!-- Dollar Front Face -->
       <text x="252" y="120"
@@ -347,4 +311,62 @@
       <line x1="406" y1="172" x2="385" y2="248" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.9" />
     </g>
   </g>
-</svg>
+</svg>`;
+}
+
+async function generateAllAppIcons() {
+  const publicDir = path.resolve(__dirname, '..', 'public');
+  const distDir = path.resolve(__dirname, '..', 'dist');
+
+  const standardSvg = getAppLogoSvg(false);
+  const maskableSvg = getAppLogoSvg(true);
+
+  // 1. Write SVG files
+  fs.writeFileSync(path.join(publicDir, 'icon.svg'), standardSvg);
+
+  // 2. Generate 192x192 PNG (Standard Android / PWA)
+  const pwa192Buffer = await sharp(Buffer.from(standardSvg))
+    .resize(192, 192)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toBuffer();
+  fs.writeFileSync(path.join(publicDir, 'pwa-192x192.png'), pwa192Buffer);
+
+  // 3. Generate 512x512 PNG (Standard Android / PWA / APK main icon)
+  const pwa512Buffer = await sharp(Buffer.from(standardSvg))
+    .resize(512, 512)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toBuffer();
+  fs.writeFileSync(path.join(publicDir, 'pwa-512x512.png'), pwa512Buffer);
+  fs.writeFileSync(path.join(publicDir, 'icon.png'), pwa512Buffer);
+
+  // 4. Generate 512x512 Maskable PNG (Android Adaptive Icon safe-zone)
+  const pwaMaskableBuffer = await sharp(Buffer.from(maskableSvg))
+    .resize(512, 512)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toBuffer();
+  fs.writeFileSync(path.join(publicDir, 'pwa-maskable-512x512.png'), pwaMaskableBuffer);
+
+  // 5. Generate 180x180 Apple Touch Icon (iOS Safari Home Screen)
+  const appleTouchBuffer = await sharp(Buffer.from(standardSvg))
+    .resize(180, 180)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toBuffer();
+  fs.writeFileSync(path.join(publicDir, 'apple-touch-icon.png'), appleTouchBuffer);
+
+  // Also sync to dist if dist exists
+  if (fs.existsSync(distDir)) {
+    fs.writeFileSync(path.join(distDir, 'pwa-192x192.png'), pwa192Buffer);
+    fs.writeFileSync(path.join(distDir, 'pwa-512x512.png'), pwa512Buffer);
+    fs.writeFileSync(path.join(distDir, 'pwa-maskable-512x512.png'), pwaMaskableBuffer);
+    fs.writeFileSync(path.join(distDir, 'apple-touch-icon.png'), appleTouchBuffer);
+    fs.writeFileSync(path.join(distDir, 'icon.png'), pwa512Buffer);
+    fs.writeFileSync(path.join(distDir, 'icon.svg'), standardSvg);
+  }
+
+  console.log('Successfully generated all PWA & Mobile APK icons from user logo!');
+}
+
+generateAllAppIcons().catch(err => {
+  console.error('Error generating icons:', err);
+  process.exit(1);
+});

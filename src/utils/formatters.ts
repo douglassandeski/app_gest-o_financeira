@@ -2,22 +2,24 @@ import { PaymentMethod, TransactionType } from '../types/finance';
 
 export const formatCurrency = (value: number, hideValues = false): string => {
   if (hideValues) return '••••••';
+  const num = typeof value === 'number' && !isNaN(value) ? value : 0;
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
-  }).format(value);
+  }).format(num);
 };
 
 export const formatCompactCurrency = (value: number, hideValues = false): string => {
   if (hideValues) return '••••';
-  if (Math.abs(value) >= 1000000) {
-    return `R$ ${(value / 1000000).toFixed(1)}M`;
+  const num = typeof value === 'number' && !isNaN(value) ? value : 0;
+  if (Math.abs(num) >= 1000000) {
+    return `R$ ${(num / 1000000).toFixed(1)}M`;
   }
-  if (Math.abs(value) >= 1000) {
-    return `R$ ${(value / 1000).toFixed(1)}k`;
+  if (Math.abs(num) >= 1000) {
+    return `R$ ${(num / 1000).toFixed(1)}k`;
   }
-  return formatCurrency(value, hideValues);
+  return formatCurrency(num, hideValues);
 };
 
 export const formatDate = (dateStr: string): string => {

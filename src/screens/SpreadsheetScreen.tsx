@@ -18,7 +18,7 @@ import { formatCurrency, formatDate, getPaymentMethodLabel, getTransactionTypeLa
 interface SpreadsheetScreenProps {
   transactions: Transaction[];
   categories: Category[];
-  accounts: Account[];
+  accounts?: Account[];
   hideValues: boolean;
   onOpenNewTransaction: () => void;
   onEditTransaction: (transaction: Transaction) => void;
@@ -27,12 +27,11 @@ interface SpreadsheetScreenProps {
   onExportCSV: () => void;
 }
 
-type SortField = 'date' | 'description' | 'category' | 'account' | 'type' | 'amount' | 'status';
+type SortField = 'date' | 'description' | 'category' | 'type' | 'amount' | 'status';
 
 export const SpreadsheetScreen: React.FC<SpreadsheetScreenProps> = ({
   transactions,
   categories,
-  accounts,
   hideValues,
   onOpenNewTransaction,
   onEditTransaction,
@@ -53,13 +52,6 @@ export const SpreadsheetScreen: React.FC<SpreadsheetScreenProps> = ({
     }, {} as Record<string, Category>);
   }, [categories]);
 
-  const accountMap = useMemo(() => {
-    return accounts.reduce((acc, a) => {
-      acc[a.id] = a;
-      return acc;
-    }, {} as Record<string, Account>);
-  }, [accounts]);
-
   // Filter & Sort
   const processedRows = useMemo(() => {
     return transactions
@@ -67,11 +59,10 @@ export const SpreadsheetScreen: React.FC<SpreadsheetScreenProps> = ({
         if (!searchTerm.trim()) return true;
         const q = searchTerm.toLowerCase();
         const cat = categoryMap[t.categoryId]?.name.toLowerCase() || '';
-        const acc = accountMap[t.accountId]?.name.toLowerCase() || '';
         const desc = t.description.toLowerCase();
         const sub = (t.subCategory || '').toLowerCase();
         const tags = (t.tags || []).join(' ').toLowerCase();
-        return desc.includes(q) || cat.includes(q) || acc.includes(q) || sub.includes(q) || tags.includes(q);
+        return desc.includes(q) || cat.includes(q) || sub.includes(q) || tags.includes(q);
       })
       .sort((a, b) => {
         let diff = 0;
@@ -89,14 +80,10 @@ export const SpreadsheetScreen: React.FC<SpreadsheetScreenProps> = ({
           const catA = categoryMap[a.categoryId]?.name || '';
           const catB = categoryMap[b.categoryId]?.name || '';
           diff = catA.localeCompare(catB);
-        } else if (sortField === 'account') {
-          const accA = accountMap[a.accountId]?.name || '';
-          const accB = accountMap[b.accountId]?.name || '';
-          diff = accA.localeCompare(accB);
         }
         return sortAsc ? diff : -diff;
       });
-  }, [transactions, searchTerm, sortField, sortAsc, categoryMap, accountMap]);
+  }, [transactions, searchTerm, sortField, sortAsc, categoryMap]);
 
   // Excel bottom bar metrics
   const totalRows = processedRows.length;
@@ -108,8 +95,12 @@ export const SpreadsheetScreen: React.FC<SpreadsheetScreenProps> = ({
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const netSum = sumIncomes - sumExpenses;
-  const avgAmount = totalRows > 0 ? (sumIncomes + sumExpenses) / totalRows : 0;
+  const sumInvestments = processedRows
+    .filter(t => t.type === 'investment')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const netSum = sumIncomes - sumExpenses - sumInvestments;
+  const avgAmount = totalRows > 0 ? (sumIncomes + sumExpenses + sumInvestments) / totalRows : 0;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -235,40 +226,29 @@ export const SpreadsheetScreen: React.FC<SpreadsheetScreenProps> = ({
                   <span>E: Subcategoria</span>
                 </th>
 
-                {/* Col F: Conta */}
-                <th 
-                  onClick={() => handleSort('account')}
-                  className="py-2.5 px-3 border-r border-[#1E293B] cursor-pointer hover:bg-[#131D2E] transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span>F: Conta / Carteira</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
-                  </div>
-                </th>
-
-                {/* Col G: Método */}
+                {/* Col F: Método */}
                 <th className="py-2.5 px-3 border-r border-[#1E293B]">
-                  <span>G: Método</span>
+                  <span>F: Método</span>
                 </th>
 
-                {/* Col H: Situação */}
+                {/* Col G: Situação */}
                 <th 
                   onClick={() => handleSort('status')}
                   className="py-2.5 px-3 border-r border-[#1E293B] cursor-pointer hover:bg-[#131D2E] transition-colors"
                 >
                   <div className="flex items-center justify-between gap-1">
-                    <span>H: Situação</span>
+                    <span>G: Situação</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-500" />
                   </div>
                 </th>
 
-                {/* Col I: Valor */}
+                {/* Col H: Valor */}
                 <th 
                   onClick={() => handleSort('amount')}
                   className="py-2.5 px-3 border-r border-[#1E293B] text-right cursor-pointer hover:bg-[#131D2E] transition-colors min-w-[130px]"
                 >
                   <div className="flex items-center justify-end gap-1">
-                    <span>I: Valor (R$)</span>
+                    <span>H: Valor (R$)</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-500" />
                   </div>
                 </th>
@@ -284,14 +264,13 @@ export const SpreadsheetScreen: React.FC<SpreadsheetScreenProps> = ({
             <tbody className="divide-y divide-[#1E293B]/70 font-mono-nums">
               {processedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-500 text-xs font-sans">
+                  <td colSpan={10} className="py-12 text-center text-slate-500 text-xs font-sans">
                     Nenhum registro encontrado na planilha.
                   </td>
                 </tr>
               ) : (
                 processedRows.map((tx, idx) => {
                   const cat = categoryMap[tx.categoryId];
-                  const acc = accountMap[tx.accountId];
                   const isSelected = selectedRowId === tx.id;
                   const isIncome = tx.type === 'income';
                   const isExpense = tx.type === 'expense';
@@ -362,11 +341,6 @@ export const SpreadsheetScreen: React.FC<SpreadsheetScreenProps> = ({
                       {/* Subcategory */}
                       <td className="py-2 px-3 border-r border-[#1E293B] font-sans text-slate-400 whitespace-nowrap">
                         {tx.subCategory || '-'}
-                      </td>
-
-                      {/* Account */}
-                      <td className="py-2 px-3 border-r border-[#1E293B] font-sans text-slate-300 whitespace-nowrap">
-                        {acc?.name || 'Conta'}
                       </td>
 
                       {/* Method */}
@@ -456,10 +430,13 @@ export const SpreadsheetScreen: React.FC<SpreadsheetScreenProps> = ({
             <span>MÉDIA: <strong className="text-slate-200">{formatCurrency(avgAmount, hideValues)}</strong></span>
             <span>RECEITAS: <strong className="text-[#00D2B5]">{formatCurrency(sumIncomes, hideValues)}</strong></span>
             <span>DESPESAS: <strong className="text-[#F43F5E]">{formatCurrency(sumExpenses, hideValues)}</strong></span>
+            {sumInvestments > 0 && (
+              <span>APORTES: <strong className="text-[#818CF8]">{formatCurrency(sumInvestments, hideValues)}</strong></span>
+            )}
             <span>
-              SALDO LÍQUIDO:{' '}
+              SALDO DISPONÍVEL:{' '}
               <strong className={netSum >= 0 ? 'text-[#00D2B5]' : 'text-[#F43F5E]'}>
-                {formatCurrency(netSum, hideValues)}
+                {netSum > 0 ? '+' : ''}{formatCurrency(netSum, hideValues)}
               </strong>
             </span>
           </div>

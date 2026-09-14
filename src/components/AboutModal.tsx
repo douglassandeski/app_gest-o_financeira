@@ -3,31 +3,20 @@ import {
   DollarSign, 
   X, 
   GraduationCap, 
-  Building2, 
   Code2, 
   Award,
   Sparkles,
   CheckCircle2
 } from 'lucide-react';
-import { getFixedCreatorPhoto, syncCreatorPhotoToServerAndFirestore } from '../utils/creatorProfile';
+import { getFixedCreatorPhoto } from '../utils/creatorProfile';
 
 interface AboutModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentUser?: {
-    displayName?: string | null;
-    photoURL?: string | null;
-    email?: string | null;
-  } | null;
 }
 
-export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, currentUser }) => {
-  const [photoUrl, setPhotoUrl] = useState<string>(() => {
-    return (
-      localStorage.getItem('douglas_custom_photo') ||
-      '/creator-photo.jpg'
-    );
-  });
+export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
+  const [photoUrl, setPhotoUrl] = useState<string>('/creator-photo.jpg');
 
   useEffect(() => {
     let isMounted = true;
@@ -36,13 +25,11 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, current
         setPhotoUrl(url);
       }
     });
-    // Silently sync local photo to Firestore and server if available
-    syncCreatorPhotoToServerAndFirestore(currentUser?.email, currentUser?.photoURL);
 
     return () => {
       isMounted = false;
     };
-  }, [currentUser?.email, currentUser?.photoURL]);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -89,9 +76,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, current
                   alt="Douglas Sandeski"
                   referrerPolicy="no-referrer"
                   onError={() => {
-                    // Fallback to svg avatar or eu.jpeg
-                    if (photoUrl !== '/creator-avatar.svg') {
-                      setPhotoUrl('/creator-avatar.svg');
+                    if (photoUrl !== '/creator-photo.jpg') {
+                      setPhotoUrl('/creator-photo.jpg');
                     }
                   }}
                   className="w-full h-full object-cover object-center"
@@ -115,26 +101,27 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, current
           </div>
 
           {/* Academic & Professional Trajectory */}
+          {/* Academic Trajectory */}
           <div className="space-y-2.5 pt-2 border-t border-[#1E293B]/70 text-xs">
-            {/* Economia Unioeste */}
+            {/* Economia */}
             <div className="flex items-start gap-3 p-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B]">
               <div className="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 flex-shrink-0 mt-0.5">
                 <GraduationCap className="w-4 h-4" />
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Graduação em Andamento
+                  Curso Superior em Andamento
                 </span>
                 <span className="text-xs font-bold text-slate-100 block">
                   Ciências Econômicas
                 </span>
                 <span className="text-[11px] text-blue-400 font-medium">
-                  Unioeste Cascavel (Universidade Estadual do Oeste do Paraná)
+                  Unioeste (Universidade Estadual do Oeste do Paraná)
                 </span>
               </div>
             </div>
 
-            {/* TIC UEPG */}
+            {/* TIC */}
             <div className="flex items-start gap-3 p-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B]">
               <div className="w-8 h-8 rounded-lg bg-[#00D2B5]/15 border border-[#00D2B5]/30 flex items-center justify-center text-[#00D2B5] flex-shrink-0 mt-0.5">
                 <Code2 className="w-4 h-4" />
@@ -144,28 +131,10 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, current
                   Formação Tecnológica
                 </span>
                 <span className="text-xs font-bold text-slate-100 block">
-                  Tecnólogo em Tecnologia da Informação e Comunicação (TIC)
+                  Tecnólogo em TI e Comunicação (TIC)
                 </span>
                 <span className="text-[11px] text-[#00D2B5] font-medium">
                   UEPG (Universidade Estadual de Ponta Grossa)
-                </span>
-              </div>
-            </div>
-
-            {/* Sicredi Guaraniaçu */}
-            <div className="flex items-start gap-3 p-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B]">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0 mt-0.5">
-                <Building2 className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Atuação Profissional
-                </span>
-                <span className="text-xs font-bold text-slate-100 block">
-                  Sicredi Guaraniaçu
-                </span>
-                <span className="text-[11px] text-emerald-400 font-medium">
-                  Instituição Financeira Cooperativa
                 </span>
               </div>
             </div>
